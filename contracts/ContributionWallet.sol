@@ -30,7 +30,7 @@ pragma solidity ^0.4.11;
 // funds back immediately.
 
 
-import "./StatusContribution.sol";
+import "./ATTContribution.sol";
 
 
 contract ContributionWallet {
@@ -38,19 +38,19 @@ contract ContributionWallet {
     // Public variables
     address public multisig;
     uint256 public endBlock;
-    StatusContribution public contribution;
+    ATTContribution public contribution;
 
     // @dev Constructor initializes public variables
     // @param _multisig The address of the multisig that will receive the funds
     // @param _endBlock Block after which the multisig can request the funds
-    // @param _contribution Address of the StatusContribution contract
+    // @param _contribution Address of the ATTContribution contract
     function ContributionWallet(address _multisig, uint256 _endBlock, address _contribution) {
         require(_multisig != 0x0);
         require(_contribution != 0x0);
         require(_endBlock != 0 && _endBlock <= 4000000);
         multisig = _multisig;
         endBlock = _endBlock;
-        contribution = StatusContribution(_contribution);
+        contribution = ATTContribution(_contribution);
     }
 
     // @dev Receive all sent funds without any further logic

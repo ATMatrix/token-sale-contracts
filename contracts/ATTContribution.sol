@@ -70,7 +70,7 @@ contract ATTContribution is Owned, TokenController {
     /// @param _startTime Time when the contribution period starts
     /// @param _endTime The time that the contribution period ends
     /// @param _destEthFoundation Destination address where the contribution ether is sent
-    /// @param _destAttVesting Address where the tokens for the reserve are sent
+    /// @param _destTokensAngel Address where the tokens for the angels are sent
     function initialize(
         address _att,
         address _attController,
@@ -205,7 +205,7 @@ contract ATTContribution is Owned, TokenController {
       uint256 percentageToAngelAndOther = percent(10);
 
       uint256 percentageToFirstRoundContributors = percent(30);
-      
+
 
       // TODO: deal with early birds
 
@@ -257,7 +257,7 @@ contract ATTContribution is Owned, TokenController {
       //                   percentage(100)
       //
       assert(ATT.generateTokens(
-          destTokensDevs,
+          destTokensAngel,
           totalTokens.mul(percentageToAngelAndOther).div(percent(100))));
 
       ATT.changeController(attController);

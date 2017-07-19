@@ -43,7 +43,7 @@ pragma solidity ^0.4.11;
 
 
 import "./MiniMeToken.sol";
-import "./StatusContribution.sol";
+import "./ATTContribution.sol";
 import "./SafeMath.sol";
 import "./ERC20Token.sol";
 
@@ -52,12 +52,12 @@ contract AngelTokensHolder is Owned {
     using SafeMath for uint256;
 
     uint256 collectedTokens;
-    StatusContribution contribution;
+    ATTContribution contribution;
     MiniMeToken att;
 
     function AngelTokensHolder(address _owner, address _contribution, address _att) {
         owner = _owner;
-        contribution = StatusContribution(_contribution);
+        contribution = ATTContribution(_contribution);
         att = MiniMeToken(_att);
     }
 
