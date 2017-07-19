@@ -9,9 +9,8 @@ contract ATTContribution is Owned, TokenController {
     using SafeMath for uint256;
 
     uint256 constant public failSafeLimit = 300000 ether;
-    uint256 constant public maxGuaranteedLimit = 30000 ether;
     uint256 constant public exchangeRate = 10000; // will be set before the token sale.
-    uint256 constant public maxGasPrice = 50000000000;
+    uint256 constant public maxGasPrice = 50000000000;  // 50GWei
     uint256 constant public maxCallFrequency = 100;
 
     uint256 constant public maxFirstRoundTokenLimit = 90000000 ether; // ATT have same precision with ETH
@@ -24,7 +23,7 @@ contract ATTContribution is Owned, TokenController {
     address public attController;
 
     address public destEthFoundation;
-    address public destAttVesting;
+    address public destTokensAngel;
 
     mapping (address => string)                  public  keys;
 
@@ -78,7 +77,7 @@ contract ATTContribution is Owned, TokenController {
         uint _startTime,
         uint _endTime,
         address _destEthFoundation,
-        address _destAttVesting
+        address _destTokensAngel
     ) public onlyOwner {
       // Initialize only once
       require(address(ATT) == 0x0);
@@ -99,8 +98,8 @@ contract ATTContribution is Owned, TokenController {
       require(_destEthFoundation != 0x0);
       destEthFoundation = _destEthFoundation;
 
-      require(_destAttVesting != 0x0);
-      destAttVesting = _destAttVesting;
+      require(_destTokensAngel != 0x0);
+      destTokensAngel = _destTokensAngel;
 
       // Address 0xb1 is provably non-transferrable
       keys[0xb1] = secondRoundKey;
@@ -203,10 +202,10 @@ contract ATTContribution is Owned, TokenController {
 
       uint256 percentageToReserve = percent(30);  // 30%
 
-      uint256 percentageToVesting = percent(10);
+      uint256 percentageToAngelAndOther = percent(10);
 
       uint256 percentageToFirstRoundContributors = percent(30);
-
+      
 
       // TODO: deal with early birds
 
@@ -253,14 +252,13 @@ contract ATTContribution is Owned, TokenController {
 
 
       //
-      //                   percentageToVesting
-      //  devTokens = ----------------------- * totalTokens
+      //               percentageToAngelAndOther
+      //  angelTokens = ----------------------- * totalTokens
       //                   percentage(100)
       //
-      // TODO: how to lock funds for 6 months? to implement the feature of vesting?
       assert(ATT.generateTokens(
-          destAttVesting,
-          totalTokens.mul(percentageToVesting).div(percent(100))));
+          destTokensDevs,
+          totalTokens.mul(percentageToAngelAndOther).div(percent(100))));
 
       ATT.changeController(attController);
 
