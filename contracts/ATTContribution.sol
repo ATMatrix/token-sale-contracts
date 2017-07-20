@@ -9,28 +9,29 @@ contract ATTContribution is Owned, TokenController {
     using SafeMath for uint256;
 
     uint256 constant public failSafeLimit = 300000 ether;
-    uint256 constant public exchangeRate = 10000; // will be set before the token sale.
+    uint256 constant public exchangeRate = 10000;   // will be set before the token sale.
     uint256 constant public maxGasPrice = 50000000000;  // 50GWei
     uint256 constant public maxCallFrequency = 100;
 
     uint256 constant public maxFirstRoundTokenLimit = 90000000 ether; // ATT have same precision with ETH
 
 
-    MiniMeToken  public  ATT;              // The ATT token itself
-    string  public  secondRoundKey;       // what kind of key would it like, if it is EVM, then may be no need to bind it.
-    string   public  reserveKey;           // Public key of founders
+    MiniMeToken public  ATT;            // The ATT token itself
+    string public  secondRoundKey;      // what kind of key would it like, if it is EVM, then may be no need to bind it.
+    string public  reserveKey;          // Public key of founders
 
     address public attController;
 
     address public destEthFoundation;
     address public destTokensAngel;
 
-    mapping (address => string)                  public  keys;
+    mapping (address => string) public keys;
 
     uint256 public startTime;
     uint256 public endTime;
 
     uint256 public totalCollected;
+    uint256 public totalTokenGenerated;
 
     uint256 public finalizedBlock;
     uint256 public finalizedTime;
@@ -129,7 +130,6 @@ contract ATTContribution is Owned, TokenController {
   function proxyPayment(address _th) public payable notPaused initialized contributionOpen returns (bool) {
       require(_th != 0x0);
 
-      // TODO: calculate the _toFund and return the left.
       doBuy(_th, msg.value);
       return true;
   }
@@ -145,12 +145,35 @@ contract ATTContribution is Owned, TokenController {
   function doBuy(address _th, uint256 _toFund) internal {
       assert(msg.value >= _toFund);  // Not needed, but double check.
       assert(totalCollected <= failSafeLimit);
+      assert(totalTokenGenerated < maxFirstRoundTokenLimit);
+
+      uint256 endOfFirstWeek = startTime.add(1 weeks);
+      uint256 endOfSecondWeek = startTime.add(1 weeks);
+      uint256 finalExchangeRate = exchangeRate;
+      if (now < endOfFirstWeek)
+      {
+          // 10% Bonus in first week
+          finalExchangeRate = exchangeRate.mul(110).div(100);
+      } else if (now < endOfSecondWeek)
+      {
+          // 5% Bonus in first week
+          finalExchangeRate = exchangeRate.mul(105).div(100);
+      }
 
       if (_toFund > 0) {
-          uint256 tokensGenerated = _toFund.mul(exchangeRate);
+          uint256 tokensGenerated = _toFund.mul(finalExchangeRate);
+
+          uint256 tokensToBeGenerated = totalTokenGenerated.add(tokensGenerated);
+          if (tokensToBeGenerated > maxFirstRoundTokenLimit)
+          {
+              tokensGenerated = maxFirstRoundTokenLimit - totalTokenGenerated;
+              _toFund = tokensGenerated.div(finalExchangeRate);
+          }
+
           assert(ATT.generateTokens(_th, tokensGenerated));
           destEthFoundation.transfer(_toFund);
 
+          totalTokenGenerated = totalTokenGenerated.add(tokensGenerated);
           totalCollected = totalCollected.add(_toFund);
           NewSale(_th, _toFund, tokensGenerated);
       }
@@ -205,10 +228,6 @@ contract ATTContribution is Owned, TokenController {
       uint256 percentageToAngelAndOther = percent(10);
 
       uint256 percentageToFirstRoundContributors = percent(30);
-
-
-      // TODO: deal with early birds
-
 
       //  ATT.totalSupply() -> Tokens minted during the contribution
       //  totalTokens  -> Total tokens that should be after the allocation
