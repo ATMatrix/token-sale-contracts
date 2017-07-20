@@ -1,0 +1,24 @@
+{
+  "name": "token_sale_contracts",
+  "version": "0.0.1",
+  "description": "token sale contracts of ATMatrix",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ATMatrix/token-sale-contracts"
+  },
+  "author": "hackfisher <hackfisher@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "bignumber.js": "^4.0.2",
+    "ethereumjs-testrpc": "^4.0.1",
+    "sleep": "^5.1.1",
+    "truffle": "^3.4.4",
+    "truffle-hdwallet-provider": "^0.0.3",
+    "web3": "^0.19.1"
+  },
+  "scripts": {
+    "testrpc": "testrpc -b 1",
+    "test": "truffle test"
+  }
+}
