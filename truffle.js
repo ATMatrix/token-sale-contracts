@@ -1,3 +1,5 @@
+const HDWalletProvider = require('truffle-hdwallet-provider');
+const mnemonic = 'ATMatrix Token';
 module.exports = {
   networks: {
     development: {
