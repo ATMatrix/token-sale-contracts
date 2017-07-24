@@ -32,7 +32,11 @@ const startTime = 0;
 const endTime = 0;
 
 module.exports = async function(deployer, network, accounts) {
-    if (network === "development") return;  // Don't deploy on tests
+    if (network === "development") {    // Don't deploy on tests
+        deployer.deploy(MiniMeTokenFactory);
+        console.log("MiniMeTokenFactory deployed!");
+        return;
+    };  
 
     // MultiSigWallet send
     let multisigEthFoundationFuture = MultiSigWallet.new(addressesEthFoundation, multisigEthReqs);
