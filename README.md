@@ -5,6 +5,12 @@ The token sale contracts
 
 Install Dependences
 
+Use nvm to install node js
+```
+$ nvm install 7.6 # or above
+$ npm -g install truffle yarn
+```
+
 ```
 $ yarn install
 ```
