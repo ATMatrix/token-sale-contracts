@@ -14,17 +14,12 @@ contract ATTContribution is Owned, TokenController {
 
     uint256 constant public maxFirstRoundTokenLimit = 90000000 ether; // ATT have same precision with ETH
 
-
     MiniMeToken public  ATT;            // The ATT token itself
-    string public  secondRoundKey;      // what kind of key would it like, if it is EVM, then may be no need to bind it.
-    string public  reserveKey;          // Public key of founders
 
     address public attController;
 
     address public destEthFoundation;
     address public destTokensAngel;
-
-    mapping (address => string) public keys;
 
     uint256 public startTime;
     uint256 public endTime;
@@ -105,15 +100,6 @@ contract ATTContribution is Owned, TokenController {
 
       require(_destTokensAngel != 0x0);
       destTokensAngel = _destTokensAngel;
-
-      // Address 0xb1 is provably non-transferrable
-      keys[0xb1] = secondRoundKey;
-      LogRegister(0xb1, secondRoundKey);
-
-      // Address 0xb2 is provably non-transferrable
-      keys[0xb2] = reserveKey;
-      // tokens reserve to 0xb2
-      LogRegister(0xb2, reserveKey);
   }
 
   /// @notice Sets the limit for a guaranteed address. All the guaranteed addresses
@@ -335,19 +321,6 @@ contract ATTContribution is Owned, TokenController {
       return block.timestamp;
   }
 
-  // Value should be a public key.  Read full key import policy.
-  // Manually registering requires a base58
-  // encoded using the ATMatrix public key format.
-  function register(string key) {
-      // TODO: Do we need to set up a deadline for end of the binding keys.
-
-      assert(bytes(key).length <= 64);
-
-      keys[msg.sender] = key;
-
-      LogRegister(msg.sender, key);
-  }
-
   //////////
   // Constant functions
   //////////
@@ -411,7 +384,6 @@ contract ATTContribution is Owned, TokenController {
 
   event LogBuy      (uint window, address user, uint amount);
   event LogClaim    (uint window, address user, uint amount);
-  event LogRegister (address user, string key);
   event LogCollect  (uint amount);
   event LogFreeze   ();
 }
