@@ -221,63 +221,28 @@ contract ATTContribution is Owned, TokenController {
       finalizedBlock = getBlockNumber();
       finalizedTime = now;
 
-      uint256 percentageToSecondRound = percent(30);
+      uint256 tokensToSecondRound = 90000000 ether;
 
-      uint256 percentageToReserve = percent(30);  // 30%
+      uint256 tokensToReserve = 90000000 ether;
 
-      uint256 percentageToAngelAndOther = percent(10);
+      uint256 tokensToAngelAndOther = 30000000 ether;
 
-      uint256 percentageToFirstRoundContributors = percent(30);
+      // totalTokenGenerated should equal to ATT.totalSupply()
 
-      //  ATT.totalSupply() -> Tokens minted during the contribution
-      //  totalTokens  -> Total tokens that should be after the allocation
-      //                   of second round, founders and reserve
-      //  percentageToFirstRoundContributors -> Which percentage should go to the
-      //                               contribution participants
-      //                               (x per 10**18 format)
-      //  percent(100) -> 100% in (x per 10**18 format)
-      //
-      //                       percentageToFirstRoundContributors
-      //  ATT.totalSupply() = -------------------------- * totalTokens  =>
-      //                             percent(100)
-      //
-      //
-      //                            percent(100)
-      //  =>  totalTokens = ---------------------------- * ATT.totalSupply()
-      //                      percentageToContributors
-      //
-      uint256 totalTokens = ATT.totalSupply().mul(percent(100)).div(percentageToFirstRoundContributors);
+      // If tokens in first round is not sold out, they will be added to second round and frozen together
+      tokensToSecondRound = tokensToSecondRound.add(maxFirstRoundTokenLimit).sub(totalTokenGenerated);
 
+      uint256 totalTokens = 300000000 ether;
 
-      // Generate tokens for second round.
+      require(totalTokens == ATT.totalSupply().add(tokensToSecondRound).add(tokensToReserve).add(tokensToAngelAndOther));
 
-      //
-      //                    percentageToSecondRound
-      //  reserveTokens = ----------------------- * totalTokens
-      //                      percentage(100)
-      //
-      assert(ATT.generateTokens(
-          0xb1,
-          totalTokens.mul(percentageToSecondRound).div(percent(100))));
+      assert(ATT.generateTokens(0xb1, tokensToSecondRound));
 
-      //
-      //                  percentageToReserve
-      //  sgtTokens = ----------------------- * totalTokens
-      //                   percentage(100)
-      //
-      assert(ATT.generateTokens(
-          0xb2,
-          totalTokens.mul(percentageToReserve).div(percent(100))));
+      assert(ATT.generateTokens(0xb2, tokensToReserve));
 
+      assert(ATT.generateTokens(destTokensAngel, tokensToAngelAndOther));
 
-      //
-      //               percentageToAngelAndOther
-      //  angelTokens = ----------------------- * totalTokens
-      //                   percentage(100)
-      //
-      assert(ATT.generateTokens(
-          destTokensAngel,
-          totalTokens.mul(percentageToAngelAndOther).div(percent(100))));
+      // totalTokens should equal to ATT.totalSupply()
 
       ATT.changeController(attController);
 
