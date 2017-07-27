@@ -11,7 +11,6 @@ contract ATTContribution is Owned, TokenController {
     uint256 constant public failSafeLimit = 300000 ether;
     uint256 constant public exchangeRate = 10000;   // will be set before the token sale.
     uint256 constant public maxGasPrice = 50000000000;  // 50GWei
-    uint256 constant public maxCallFrequency = 100;
 
     uint256 constant public maxFirstRoundTokenLimit = 90000000 ether; // ATT have same precision with ETH
 
@@ -30,13 +29,18 @@ contract ATTContribution is Owned, TokenController {
     uint256 public startTime;
     uint256 public endTime;
 
-    uint256 public totalCollected;
+    mapping (address => uint256) public guaranteedBuyersLimit;  // in ETH
+    mapping (address => uint256) public guaranteedBuyersBought; // in ETH
+
     uint256 public totalTokenGenerated;
+
+    uint256 public totalGuaranteedCollected;
+    uint256 public totalNormalCollected;
+
+    uint256 public totalEthGuaranted;
 
     uint256 public finalizedBlock;
     uint256 public finalizedTime;
-
-    mapping (address => uint256) public lastCallBlock;
 
     bool public paused;
 
@@ -112,6 +116,22 @@ contract ATTContribution is Owned, TokenController {
       LogRegister(0xb2, reserveKey);
   }
 
+  /// @notice Sets the limit for a guaranteed address. All the guaranteed addresses
+  ///  will be able to get ATTs during the contribution period with his own
+  ///  specific limit. Can not set limit for the same addres twice.
+  ///  This method should be called by the owner after the initialization, including the contribution period
+  /// @param _th Guaranteed address
+  /// @param _limit Limit for the guaranteed address.
+  function setGuaranteedAddress(address _th, uint256 _limit) public initialized onlyOwner {
+      // require(time() < startTime);
+      require(guaranteedBuyersLimit[_th] == 0);
+      require(_limit > 0 && (_limit.add(totalEthGuaranted).sub(totalGuaranteedCollected)).mul(exchangeRate).mul(110).div(100) <= maxFirstRoundTokenLimit.sub(totalTokenGenerated));
+
+      totalEthGuaranted = _limit.add(totalEthGuaranted);
+      guaranteedBuyersLimit[_th] = _limit;
+      GuaranteedAddress(_th, _limit);
+  }
+
   /// @notice If anybody sends Ether directly to this contract, consider he is
   ///  getting ATTs.
   function () public payable notPaused {
@@ -130,7 +150,12 @@ contract ATTContribution is Owned, TokenController {
   function proxyPayment(address _th) public payable notPaused initialized contributionOpen returns (bool) {
       require(_th != 0x0);
 
-      doBuy(_th, msg.value);
+      if (guaranteedBuyersLimit[_th] > 0) {
+          buyGuaranteed(_th);
+      } else {
+          buyNormal(_th);
+      }
+
       return true;
   }
 
@@ -142,11 +167,42 @@ contract ATTContribution is Owned, TokenController {
       return false;
   }
 
-  function doBuy(address _th, uint256 _toFund) internal {
+  function buyNormal(address _th) internal {
+        require(tx.gasprice <= maxGasPrice);
+
+        // Antispam mechanism
+        // TODO: Is this checking useful?
+        address caller;
+        if (msg.sender == address(ATT)) {
+            caller = _th;
+        } else {
+            caller = msg.sender;
+        }
+
+        // Do not allow contracts to game the system
+        require(!isContract(caller));
+
+        doBuy(_th, msg.value, false);
+    }
+
+    function buyGuaranteed(address _th) internal {
+        uint256 toCollect = guaranteedBuyersLimit[_th];
+
+        uint256 toFund;
+        if (guaranteedBuyersBought[_th].add(msg.value) > toCollect) {
+            toFund = toCollect.sub(guaranteedBuyersBought[_th]);
+        } else {
+            toFund = msg.value;
+        }
+
+        doBuy(_th, toFund, true);
+    }
+
+  function doBuy(address _th, uint256 _toFund, bool _guaranteed) internal {
       require(tx.gasprice <= maxGasPrice);
 
       assert(msg.value >= _toFund);  // Not needed, but double check.
-      assert(totalCollected <= failSafeLimit);
+      assert(totalCollected() <= failSafeLimit);
       assert(totalTokenGenerated < maxFirstRoundTokenLimit);
 
       uint256 endOfFirstWeek = startTime.add(1 weeks);
@@ -163,21 +219,29 @@ contract ATTContribution is Owned, TokenController {
       }
 
       if (_toFund > 0) {
-          uint256 tokensGenerated = _toFund.mul(finalExchangeRate);
+          uint256 tokensGenerating = _toFund.mul(finalExchangeRate);
 
-          uint256 tokensToBeGenerated = totalTokenGenerated.add(tokensGenerated);
+          uint256 tokensToBeGenerated = totalTokenGenerated.add(tokensGenerating);
           if (tokensToBeGenerated > maxFirstRoundTokenLimit)
           {
-              tokensGenerated = maxFirstRoundTokenLimit - totalTokenGenerated;
-              _toFund = tokensGenerated.div(finalExchangeRate);
+              tokensGenerating = maxFirstRoundTokenLimit - totalTokenGenerated;
+              _toFund = tokensGenerating.div(finalExchangeRate);
           }
 
-          assert(ATT.generateTokens(_th, tokensGenerated));
+          assert(ATT.generateTokens(_th, tokensGenerating));
           destEthFoundation.transfer(_toFund);
 
-          totalTokenGenerated = totalTokenGenerated.add(tokensGenerated);
-          totalCollected = totalCollected.add(_toFund);
-          NewSale(_th, _toFund, tokensGenerated);
+          totalTokenGenerated = totalTokenGenerated.add(tokensGenerating);
+
+          if(_guaranteed)
+          {
+              guaranteedBuyersBought[_th] = guaranteedBuyersBought[_th].add(_toFund);
+              totalGuaranteedCollected = totalGuaranteedCollected.add(_toFund);
+          } else {
+              totalNormalCollected = totalNormalCollected.add(_toFund);
+          }
+
+          NewSale(_th, _toFund, tokensGenerating);
       }
 
       uint256 toReturn = msg.value.sub(_toFund);
@@ -254,6 +318,18 @@ contract ATTContribution is Owned, TokenController {
   function percent(uint256 p) internal returns (uint256) {
       return p.mul(10**16);
   }
+  
+  /// @dev Internal function to determine if an address is a contract
+  /// @param _addr The address being queried
+  /// @return True if `_addr` is a contract
+  function isContract(address _addr) constant internal returns (bool) {
+      if (_addr == 0) return false;
+      uint256 size;
+      assembly {
+          size := extcodesize(_addr)
+      }
+      return (size > 0);
+  }
 
   function time() constant returns (uint) {
       return block.timestamp;
@@ -279,6 +355,11 @@ contract ATTContribution is Owned, TokenController {
   /// @return Total tokens issued in weis.
   function tokensIssued() public constant returns (uint256) {
       return ATT.totalSupply();
+  }
+
+  /// @return Total Ether collected.
+  function totalCollected() public constant returns (uint256) {
+      return totalNormalCollected.add(totalGuaranteedCollected);
   }
 
   //////////
@@ -325,6 +406,7 @@ contract ATTContribution is Owned, TokenController {
 
   event ClaimedTokens(address indexed _token, address indexed _controller, uint256 _amount);
   event NewSale(address indexed _th, uint256 _amount, uint256 _tokens);
+  event GuaranteedAddress(address indexed _th, uint256 _limit);
   event Finalized();
 
   event LogBuy      (uint window, address user, uint amount);
