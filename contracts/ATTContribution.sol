@@ -143,6 +143,8 @@ contract ATTContribution is Owned, TokenController {
   }
 
   function doBuy(address _th, uint256 _toFund) internal {
+      require(tx.gasprice <= maxGasPrice);
+
       assert(msg.value >= _toFund);  // Not needed, but double check.
       assert(totalCollected <= failSafeLimit);
       assert(totalTokenGenerated < maxFirstRoundTokenLimit);
