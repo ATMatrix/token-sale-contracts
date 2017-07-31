@@ -10,7 +10,7 @@ contract ATT is MiniMeToken {
                 _tokenFactory,
                 0x0,                     // no parent token
                 0,                       // no snapshot block number from parent
-                "ATMatrix Token",        // Token name
+                "Atmatrix Token",        // Token name
                 18,                      // Decimals
                 "ATT",                   // Symbol
                 true                     // Enable transfers
