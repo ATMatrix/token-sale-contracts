@@ -13,7 +13,7 @@ contract ATTContribution is Owned, TokenController {
 
     uint256 constant public maxFirstRoundTokenLimit = 20000000 ether; // ATT have same precision with ETH
 
-    uint256 constant public maxIssueTokenLimit = 50000000 ether; // ATT have same precision with ETH
+    uint256 constant public maxIssueTokenLimit = 70000000 ether; // ATT have same precision with ETH
 
     MiniMeToken public  ATT;            // The ATT token itself
 
@@ -199,14 +199,14 @@ contract ATTContribution is Owned, TokenController {
       }
   }
 
-  function issueTokenToGuaranteedAddress(address _th, uint256 _amount) onlyOwner initialized notPaused contributionOpen {
+  function issueTokenToGuaranteedAddress(address _th, uint256 _amount, bytes data) onlyOwner initialized notPaused contributionOpen {
       require(totalIssueTokenGenerated.add(_amount) <= maxIssueTokenLimit);
 
       assert(ATT.generateTokens(_th, _amount));
 
       totalIssueTokenGenerated = totalIssueTokenGenerated.add(_amount);
 
-      NewIssue(_th, _amount);
+      NewIssue(_th, _amount, data);
   }
 
   // NOTE on Percentage format
@@ -231,9 +231,9 @@ contract ATTContribution is Owned, TokenController {
   ///  end or by anybody after the `endBlock`. This method finalizes the contribution period
   ///  by creating the remaining tokens and transferring the controller to the configured
   ///  controller.
-  function finalize() public initialized {
+  function finalize() public onlyOwner initialized {
       require(time() >= startTime);
-      require(msg.sender == owner || time() > endTime);
+      // require(msg.sender == owner || time() > endTime);
       require(finalizedBlock == 0);
 
       finalizedBlock = getBlockNumber();
@@ -340,6 +340,6 @@ contract ATTContribution is Owned, TokenController {
 
   event ClaimedTokens(address indexed _token, address indexed _controller, uint256 _amount);
   event NewSale(address indexed _th, uint256 _amount, uint256 _tokens);
-  event NewIssue(address indexed _th, uint256 _amount);
+  event NewIssue(address indexed _th, uint256 _amount, bytes data);
   event Finalized();
 }

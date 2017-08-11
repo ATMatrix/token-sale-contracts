@@ -24,8 +24,8 @@ const addressesAttAngel = [
 ];
 const multisigAttAngelReqs = 1;
 
-const startTime = 0;
-const endTime = 0;
+const startTime = 1503057600;
+const endTime = 1505736000;
 
 module.exports = async function(deployer, network, accounts) {
     if (network === "development") {    // Don't deploy on tests
