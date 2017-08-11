@@ -42,12 +42,12 @@ contract ContributionWallet {
 
     // @dev Constructor initializes public variables
     // @param _multisig The address of the multisig that will receive the funds
-    // @param _endBlock Block after which the multisig can request the funds
+    // @param _endTime Block time after which the multisig can request the funds
     // @param _contribution Address of the ATTContribution contract
     function ContributionWallet(address _multisig, uint256 _endTime, address _contribution) {
         require(_multisig != 0x0);
         require(_contribution != 0x0);
-        require(_endBlock != 0 && _endBlock <= 4000000);
+        require(_endTime != 0 && _endTime <= 1505908800);
         multisig = _multisig;
         endTime = _endTime;
         contribution = ATTContribution(_contribution);
