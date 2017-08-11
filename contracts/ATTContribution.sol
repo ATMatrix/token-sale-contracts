@@ -154,7 +154,7 @@ contract ATTContribution is Owned, TokenController {
       assert(totalNormalTokenGenerated < maxFirstRoundTokenLimit);
 
       uint256 endOfFirstWeek = startTime.add(1 weeks);
-      uint256 endOfSecondWeek = startTime.add(1 weeks);
+      uint256 endOfSecondWeek = startTime.add(2 weeks);
       uint256 finalExchangeRate = exchangeRate;
       if (now < endOfFirstWeek)
       {
