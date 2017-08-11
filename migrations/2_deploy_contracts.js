@@ -7,49 +7,37 @@ const AngelTokensHolder = artifacts.require("AngelTokensHolder");
 const ATTPlaceHolder = artifacts.require("ATTPlaceHolder");
 
 // All of these constants need to be configured before deploy
-const addressOwner = "0x34B0b1e9E42721E9E4a3D38A558EB0155a588340";
-
-
+/*
 const addressesEthFoundation = [
-    "0x34B0b1e9E42721E9E4a3D38A558EB0155a588340",
+    "0xF67ab97Ec3927a2F5D07129630C9A0f36d2738D0",
+    "0xcbBD91Ed3377b61a5167C30C256429B2fD33d42f",
+    "0x009514B270457718478Ab860B41A3c1ed290a2b0",
+    "0x69A009FFb0627d60Ae9D253346d25B86A6731069",
+    "0xFAEB4e78e9F9a3d9eFE38d26011bd4F4E6f70014"
 ];
-const multisigEthReqs = 1;
-
-const addressesCommunity = [
-    "0x34B0b1e9E42721E9E4a3D38A558EB0155a588340",
-];
-const multisigCommunityReqs = 1
+const multisigEthReqs = 3;
+*/
+const addressEthFoundationMultisig = "0xe11bd1032fe0d7343e8de21f92f050ae8462a7d7";
 
 const addressesAttAngel = [
     "0x34B0b1e9E42721E9E4a3D38A558EB0155a588340",
 ];
 const multisigAttAngelReqs = 1;
 
-const startBlock = 9800000;
-const endBlock = 9900000;
-
 const startTime = 0;
 const endTime = 0;
 
 module.exports = async function(deployer, network, accounts) {
     if (network === "development") {    // Don't deploy on tests
-        deployer.deploy(MiniMeTokenFactory);
-        console.log("MiniMeTokenFactory deployed!");
         return;
     };  
 
     // MultiSigWallet send
-    let multisigEthFoundationFuture = MultiSigWallet.new(addressesEthFoundation, multisigEthReqs);
-    let multisigCommunityFuture = MultiSigWallet.new(addressesCommunity, multisigCommunityReqs);
     let multisigAttAngelFuture = MultiSigWallet.new(addressesAttAngel, multisigAttAngelReqs);
     // MiniMeTokenFactory send
     let miniMeTokenFactoryFuture = MiniMeTokenFactory.new();
 
     // MultiSigWallet wait
-    let multisigEthFoundation = await multisigEthFoundationFuture;
-    console.log("\nMultiSigWallet ETH Foundation: " + multisigEthFoundation.address);
-    let multisigCommunity = await multisigCommunityFuture;
-    console.log("MultiSigWallet Community: " + multisigCommunity.address);
     let multisigAttAngel = await multisigAttAngelFuture;
     console.log("MultiSigWallet ATT Angel: " + multisigAttAngel.address);
     // MiniMeTokenFactory wait
@@ -74,8 +62,8 @@ module.exports = async function(deployer, network, accounts) {
     let attChangeControllerFuture = att.changeController(attContribution.address);
     // ContributionWallet send
     let contributionWalletFuture = ContributionWallet.new(
-        multisigEthFoundation.address,
-        endBlock,
+        addressEthFoundationMultisig,
+        endTime,
         attContribution.address);
     // AngelTokensHolder send
     let angelTokensHolderFuture = AngelTokensHolder.new(
@@ -95,7 +83,7 @@ module.exports = async function(deployer, network, accounts) {
 
     // ATTPlaceHolder send
     let attPlaceHolderFuture = ATTPlaceHolder.new(
-        multisigCommunity.address,
+        addressEthFoundationMultisig,
         att.address,
         attContribution.address);
 
@@ -107,7 +95,7 @@ module.exports = async function(deployer, network, accounts) {
     // ATTContribution initialize send/wait
     await attContribution.initialize(
         att.address,
-        sntPlaceHolder.address,
+        attPlaceHolder.address,
         startTime,
         endTime,
         contributionWallet.address,

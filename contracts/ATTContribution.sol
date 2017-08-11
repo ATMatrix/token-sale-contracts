@@ -8,11 +8,12 @@ import "./ERC20Token.sol";
 contract ATTContribution is Owned, TokenController {
     using SafeMath for uint256;
 
-    uint256 constant public failSafeLimit = 300000 ether;
-    uint256 constant public exchangeRate = 10000;   // will be set before the token sale.
+    uint256 constant public exchangeRate = 600;   // will be set before the token sale.
     uint256 constant public maxGasPrice = 50000000000;  // 50GWei
 
-    uint256 constant public maxFirstRoundTokenLimit = 90000000 ether; // ATT have same precision with ETH
+    uint256 constant public maxFirstRoundTokenLimit = 20000000 ether; // ATT have same precision with ETH
+
+    uint256 constant public maxIssueTokenLimit = 50000000 ether; // ATT have same precision with ETH
 
     MiniMeToken public  ATT;            // The ATT token itself
 
@@ -24,15 +25,10 @@ contract ATTContribution is Owned, TokenController {
     uint256 public startTime;
     uint256 public endTime;
 
-    mapping (address => uint256) public guaranteedBuyersLimit;  // in ETH
-    mapping (address => uint256) public guaranteedBuyersBought; // in ETH
+    uint256 public totalNormalTokenGenerated;
+    uint256 public totalNormalEtherCollected;
 
-    uint256 public totalTokenGenerated;
-
-    uint256 public totalGuaranteedCollected;
-    uint256 public totalNormalCollected;
-
-    uint256 public totalEthGuaranted;
+    uint256 public totalIssueTokenGenerated;
 
     uint256 public finalizedBlock;
     uint256 public finalizedTime;
@@ -102,22 +98,6 @@ contract ATTContribution is Owned, TokenController {
       destTokensAngel = _destTokensAngel;
   }
 
-  /// @notice Sets the limit for a guaranteed address. All the guaranteed addresses
-  ///  will be able to get ATTs during the contribution period with his own
-  ///  specific limit. Can not set limit for the same addres twice.
-  ///  This method should be called by the owner after the initialization, including the contribution period
-  /// @param _th Guaranteed address
-  /// @param _limit Limit for the guaranteed address.
-  function setGuaranteedAddress(address _th, uint256 _limit) public initialized onlyOwner {
-      // require(time() < startTime);
-      require(guaranteedBuyersLimit[_th] == 0);
-      require(_limit > 0 && (_limit.add(totalEthGuaranted).sub(totalGuaranteedCollected)).mul(exchangeRate).mul(110).div(100) <= maxFirstRoundTokenLimit.sub(totalTokenGenerated));
-
-      totalEthGuaranted = _limit.add(totalEthGuaranted);
-      guaranteedBuyersLimit[_th] = _limit;
-      GuaranteedAddress(_th, _limit);
-  }
-
   /// @notice If anybody sends Ether directly to this contract, consider he is
   ///  getting ATTs.
   function () public payable notPaused {
@@ -136,11 +116,7 @@ contract ATTContribution is Owned, TokenController {
   function proxyPayment(address _th) public payable notPaused initialized contributionOpen returns (bool) {
       require(_th != 0x0);
 
-      if (guaranteedBuyersLimit[_th] > 0) {
-          buyGuaranteed(_th);
-      } else {
-          buyNormal(_th);
-      }
+      buyNormal(_th);
 
       return true;
   }
@@ -154,42 +130,28 @@ contract ATTContribution is Owned, TokenController {
   }
 
   function buyNormal(address _th) internal {
-        require(tx.gasprice <= maxGasPrice);
+      require(tx.gasprice <= maxGasPrice);
+      
+      // Antispam mechanism
+      // TODO: Is this checking useful?
+      address caller;
+      if (msg.sender == address(ATT)) {
+          caller = _th;
+      } else {
+          caller = msg.sender;
+      }
 
-        // Antispam mechanism
-        // TODO: Is this checking useful?
-        address caller;
-        if (msg.sender == address(ATT)) {
-            caller = _th;
-        } else {
-            caller = msg.sender;
-        }
+      // Do not allow contracts to game the system
+      require(!isContract(caller));
 
-        // Do not allow contracts to game the system
-        require(!isContract(caller));
+      doBuy(_th, msg.value);
+  }
 
-        doBuy(_th, msg.value, false);
-    }
-
-    function buyGuaranteed(address _th) internal {
-        uint256 toCollect = guaranteedBuyersLimit[_th];
-
-        uint256 toFund;
-        if (guaranteedBuyersBought[_th].add(msg.value) > toCollect) {
-            toFund = toCollect.sub(guaranteedBuyersBought[_th]);
-        } else {
-            toFund = msg.value;
-        }
-
-        doBuy(_th, toFund, true);
-    }
-
-  function doBuy(address _th, uint256 _toFund, bool _guaranteed) internal {
+  function doBuy(address _th, uint256 _toFund) internal {
       require(tx.gasprice <= maxGasPrice);
 
       assert(msg.value >= _toFund);  // Not needed, but double check.
-      assert(totalCollected() <= failSafeLimit);
-      assert(totalTokenGenerated < maxFirstRoundTokenLimit);
+      assert(totalNormalTokenGenerated < maxFirstRoundTokenLimit);
 
       uint256 endOfFirstWeek = startTime.add(1 weeks);
       uint256 endOfSecondWeek = startTime.add(1 weeks);
@@ -207,25 +169,19 @@ contract ATTContribution is Owned, TokenController {
       if (_toFund > 0) {
           uint256 tokensGenerating = _toFund.mul(finalExchangeRate);
 
-          uint256 tokensToBeGenerated = totalTokenGenerated.add(tokensGenerating);
+          uint256 tokensToBeGenerated = totalNormalTokenGenerated.add(tokensGenerating);
           if (tokensToBeGenerated > maxFirstRoundTokenLimit)
           {
-              tokensGenerating = maxFirstRoundTokenLimit - totalTokenGenerated;
+              tokensGenerating = maxFirstRoundTokenLimit - totalNormalTokenGenerated;
               _toFund = tokensGenerating.div(finalExchangeRate);
           }
 
           assert(ATT.generateTokens(_th, tokensGenerating));
           destEthFoundation.transfer(_toFund);
 
-          totalTokenGenerated = totalTokenGenerated.add(tokensGenerating);
+          totalNormalTokenGenerated = totalNormalTokenGenerated.add(tokensGenerating);
 
-          if(_guaranteed)
-          {
-              guaranteedBuyersBought[_th] = guaranteedBuyersBought[_th].add(_toFund);
-              totalGuaranteedCollected = totalGuaranteedCollected.add(_toFund);
-          } else {
-              totalNormalCollected = totalNormalCollected.add(_toFund);
-          }
+          totalNormalEtherCollected = totalNormalEtherCollected.add(_toFund);
 
           NewSale(_th, _toFund, tokensGenerating);
       }
@@ -241,6 +197,16 @@ contract ATTContribution is Owned, TokenController {
               msg.sender.transfer(toReturn);
           }
       }
+  }
+
+  function issueTokenToGuaranteedAddress(address _th, uint256 _amount) onlyOwner initialized notPaused contributionOpen {
+      require(totalIssueTokenGenerated.add(_amount) <= maxIssueTokenLimit);
+
+      assert(ATT.generateTokens(_th, _amount));
+
+      totalIssueTokenGenerated = totalIssueTokenGenerated.add(_amount);
+
+      NewIssue(_th, _amount);
   }
 
   // NOTE on Percentage format
@@ -282,7 +248,7 @@ contract ATTContribution is Owned, TokenController {
       // totalTokenGenerated should equal to ATT.totalSupply()
 
       // If tokens in first round is not sold out, they will be added to second round and frozen together
-      tokensToSecondRound = tokensToSecondRound.add(maxFirstRoundTokenLimit).sub(totalTokenGenerated);
+      tokensToSecondRound = tokensToSecondRound.add(maxFirstRoundTokenLimit).sub(totalNormalTokenGenerated).add(maxIssueTokenLimit).sub(totalIssueTokenGenerated);
 
       uint256 totalTokens = 300000000 ether;
 
@@ -330,11 +296,6 @@ contract ATTContribution is Owned, TokenController {
       return ATT.totalSupply();
   }
 
-  /// @return Total Ether collected.
-  function totalCollected() public constant returns (uint256) {
-      return totalNormalCollected.add(totalGuaranteedCollected);
-  }
-
   //////////
   // Testing specific methods
   //////////
@@ -379,11 +340,6 @@ contract ATTContribution is Owned, TokenController {
 
   event ClaimedTokens(address indexed _token, address indexed _controller, uint256 _amount);
   event NewSale(address indexed _th, uint256 _amount, uint256 _tokens);
-  event GuaranteedAddress(address indexed _th, uint256 _limit);
+  event NewIssue(address indexed _th, uint256 _amount);
   event Finalized();
-
-  event LogBuy      (uint window, address user, uint amount);
-  event LogClaim    (uint window, address user, uint amount);
-  event LogCollect  (uint amount);
-  event LogFreeze   ();
 }

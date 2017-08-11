@@ -1,7 +1,7 @@
 pragma solidity ^0.4.11;
 
 /*
-    Copyright 2017, Jordi Baylina
+    Copyright 2017, Denny Wang
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@ pragma solidity ^0.4.11;
  */
 
 /// @title ContributionWallet Contract
-/// @author Jordi Baylina
+/// @author Denny Wang
 /// @dev This contract will be hold the Ether during the contribution period.
 ///  The idea of this contract is to avoid recycling Ether during the contribution
 ///  period. So all the ETH collected will be locked here until the contribution
@@ -37,19 +37,19 @@ contract ContributionWallet {
 
     // Public variables
     address public multisig;
-    uint256 public endBlock;
+    uint256 public endTime;
     ATTContribution public contribution;
 
     // @dev Constructor initializes public variables
     // @param _multisig The address of the multisig that will receive the funds
     // @param _endBlock Block after which the multisig can request the funds
     // @param _contribution Address of the ATTContribution contract
-    function ContributionWallet(address _multisig, uint256 _endBlock, address _contribution) {
+    function ContributionWallet(address _multisig, uint256 _endTime, address _contribution) {
         require(_multisig != 0x0);
         require(_contribution != 0x0);
         require(_endBlock != 0 && _endBlock <= 4000000);
         multisig = _multisig;
-        endBlock = _endBlock;
+        endTime = _endTime;
         contribution = ATTContribution(_contribution);
     }
 
@@ -59,7 +59,7 @@ contract ContributionWallet {
     // @dev Withdraw function sends all the funds to the wallet if conditions are correct
     function withdraw() public {
         require(msg.sender == multisig);              // Only the multisig can request it
-        require(block.number > endBlock ||            // Allow after end block
+        require(block.timestamp > endTime ||            // Allow after end block's timestamp
                 contribution.finalizedBlock() != 0);  // Allow when sale is finalized
         multisig.transfer(this.balance);
     }
