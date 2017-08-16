@@ -11,9 +11,9 @@ contract ATTContribution is Owned, TokenController {
     uint256 constant public exchangeRate = 600;   // will be set before the token sale.
     uint256 constant public maxGasPrice = 50000000000;  // 50GWei
 
-    uint256 constant public maxFirstRoundTokenLimit = 20000000 ether; // ATT have same precision with ETH
+    uint256 public maxFirstRoundTokenLimit = 20000000 ether; // ATT have same precision with ETH
 
-    uint256 constant public maxIssueTokenLimit = 70000000 ether; // ATT have same precision with ETH
+    uint256 public maxIssueTokenLimit = 70000000 ether; // ATT have same precision with ETH
 
     MiniMeToken public  ATT;            // The ATT token itself
 
