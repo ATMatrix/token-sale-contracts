@@ -209,7 +209,7 @@ contract ATTContribution is Owned, TokenController {
       NewIssue(_th, _amount, data);
   }
 
-  function ajustLimitBetweenIssueAndNormal(uint256 _amount, bool _isAddToNormal) onlyOwner initialized contributionOpen {
+  function adjustLimitBetweenIssueAndNormal(uint256 _amount, bool _isAddToNormal) onlyOwner initialized contributionOpen {
       if(_isAddToNormal)
       {
           require(totalIssueTokenGenerated.add(_amount) <= maxIssueTokenLimit);
