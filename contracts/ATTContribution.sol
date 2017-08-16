@@ -209,6 +209,19 @@ contract ATTContribution is Owned, TokenController {
       NewIssue(_th, _amount, data);
   }
 
+  function ajustLimitBetweenIssueAndNormal(uint256 _amount, bool _isAddToNormal) onlyOwner initialized contributionOpen {
+      if(_isAddToNormal)
+      {
+          require(totalIssueTokenGenerated.add(_amount) <= maxIssueTokenLimit);
+          maxIssueTokenLimit = maxIssueTokenLimit.sub(_amount);
+          maxFirstRoundTokenLimit = maxFirstRoundTokenLimit.add(_amount);
+      } else {
+          require(totalNormalTokenGenerated.add(_amount) <= maxFirstRoundTokenLimit);
+          maxFirstRoundTokenLimit = maxFirstRoundTokenLimit.sub(_amount);
+          maxIssueTokenLimit = maxIssueTokenLimit.add(_amount);
+      }
+  }
+
   // NOTE on Percentage format
   // Right now, Solidity does not support decimal numbers. (This will change very soon)
   //  So in this contract we use a representation of a percentage that consist in
