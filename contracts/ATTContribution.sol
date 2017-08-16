@@ -162,7 +162,7 @@ contract ATTContribution is Owned, TokenController {
           finalExchangeRate = exchangeRate.mul(110).div(100);
       } else if (now < endOfSecondWeek)
       {
-          // 5% Bonus in first week
+          // 5% Bonus in second week
           finalExchangeRate = exchangeRate.mul(105).div(100);
       }
 
@@ -248,7 +248,9 @@ contract ATTContribution is Owned, TokenController {
       // totalTokenGenerated should equal to ATT.totalSupply()
 
       // If tokens in first round is not sold out, they will be added to second round and frozen together
-      tokensToSecondRound = tokensToSecondRound.add(maxFirstRoundTokenLimit).sub(totalNormalTokenGenerated).add(maxIssueTokenLimit).sub(totalIssueTokenGenerated);
+      tokensToSecondRound = tokensToSecondRound.add(maxFirstRoundTokenLimit).sub(totalNormalTokenGenerated);
+      
+      tokensToSecondRound = tokensToSecondRound.add(maxIssueTokenLimit).sub(totalIssueTokenGenerated);
 
       uint256 totalTokens = 300000000 ether;
 

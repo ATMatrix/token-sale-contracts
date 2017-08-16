@@ -40,8 +40,6 @@ contract ATTPlaceHolder is TokenController, Owned {
     ATTContribution public contribution;
     uint256 public activationTime;
 
-    mapping(address => bool) public whitelist;
-
     /// @notice Constructor
     /// @param _owner Trusted owner for this contract.
     /// @param _att ATT token contract address
@@ -88,7 +86,7 @@ contract ATTPlaceHolder is TokenController, Owned {
                 return false;
             }
         }
-        return (getTime() > activationTime) || (whitelist[_from] == true);
+        return getTime() > activationTime;
     }
 
 
